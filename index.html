@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="yi.jpg">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Bad+Script">
+    <link rel="apple-touch-startup-image" href="yi.jpg">
+    <title>lol friends</title>
+    <style>
+        html, body{height:100%; margin:0px;}
+        body{font-family:'Bad Script', cursive;}
+
+        #bg{width:100%; height:100%; position:fixed; top:0px; left:0px; z-index:-1; opacity:0.3;}
+
+        h1{margin:0px; text-align:center;}
+
+        ul{list-style-type:none; margin:0% 10%; padding:0px;}
+
+        .divider{width:100%;}
+
+        .left{float:left;}
+        .right{float:right;}
+        .center{text-align:center;}
+    </style>
+</head>
+<body>
+    <img id="bg" src="bg.jpg">
+    <header><h1>lol friends</h1></header>
+    <main>
+        <div class="center">
+            <select id="summoner">
+                <option value="0">All</option>
+            </select>
+        </div>
+        <ul id="list"></ul>
+    </main>
+    <script>window.prerender = {{prerender json}};</script>
+    <script src="client.js"></script>
+</body>
+</html>
