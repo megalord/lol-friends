@@ -76,7 +76,7 @@ saveGame = function(summoner, rawGame) {
         deaths:     rawGame.stats.numDeaths || 0,
         assists:    rawGame.stats.assists || 0,
         minions:    rawGame.stats.minionsKilled,
-        gold:       rawGame.stats.gold
+        gold:       rawGame.stats.goldEarned
     });
 
     // Check if the game has already been saved.
