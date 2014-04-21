@@ -59,7 +59,7 @@ spider.define('view', function() {
         return createElement('div', [
             createElement('span', game.type, {class:'left'}),
             createElement('span', game.win ? 'victory' : 'defeat'),
-            createElement('span', formatDate(game.start), {class:'right'})
+            createElement('span', formatDate(game.end), {class:'right'})
         ], {class:'center'});
     },
 

@@ -22,7 +22,7 @@ module.exports = webServer = {
         this.http = http.createServer(function(request, response) {
             var uri = url.parse(request.url).pathname,
                 filename = path.join(root, uri);
-            console.log(request.method + ' request to ' + uri);
+            //console.log(request.method + ' request to ' + uri);
             if(request.method in self.router && uri in self.router[request.method]) {
                 self.router[request.method][uri](request, response);
             } else if(request.method === 'GET') {

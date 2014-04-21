@@ -73,6 +73,7 @@ saveGame = function(summoner, rawGame) {
         assists:    rawGame.stats.assists || 0,
         minions:    rawGame.stats.minionsKilled,
         gold:       rawGame.stats.goldEarned,
+        wards:      rawGame.stats.wardPlaced,
         item1:      rawGame.stats.item1,
         item2:      rawGame.stats.item2,
         item3:      rawGame.stats.item3,
@@ -87,7 +88,7 @@ saveGame = function(summoner, rawGame) {
         store.games.push({
             id:     rawGame.gameId,
             length: rawGame.stats.timePlayed,
-            start:  rawGame.createDate,
+            end:    rawGame.createDate,
             type:   rawGame.subType.replace('_', ' '),
             win:    rawGame.stats.win
         });

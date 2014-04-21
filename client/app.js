@@ -1,51 +1,44 @@
 spider.define('app', function() {
 
     var store = spider.fetch('store'),
-        view = spider.fetch('view');
+        view = spider.fetch('view'),
+        
+        mergedPlayers = store.players.copy()
+            .merge(store.champions, 'champion')
+            .merge(store.summoners, 'summoner');
     
     diesel.router.config({history:false})
+
     .when('/', function() {
         view.home();
     })
+
     .when('/games/all', function() {
-        var games = clone(store.games);
-
-        // Sort the games descending by date.
-        games.sort(function(a, b) {
-            return b.start - a.start;
-        });
-
-        for(var i = 0; i < games.length; i++) {
-            games[i].players = store.query('players', {game:games[i].id});
-            for(var j = 0; j < games[i].players.length; j++) {
-                games[i].players[j].summonerName = store.find('summoners', games[i].players[j].summoner).name;
-                games[i].players[j].championName = store.find('champions', games[i].players[j].champion).name;
-            };
-        };
+        var games = store.games
+                .joinMany(mergedPlayers, 'players', 'game')
+                .sort('end', 'desc');
 
         view.allGames(games);
     })
+
     .when('/games/:id', function(params) {
-        var game = clone(store.find('games', parseInt(params.id))),
-            players = store.query('players', {game:parseInt(params.id)});
+        var game = store.games
+            .query({id:parseInt(params.id)})
+            .joinMany(mergedPlayers, 'players', 'game');
 
-        game.players = clone(players);
-
-        for(var i = 0; i < players.length; i++) {
-            game.players[i].summonerName = store.find('summoners', players[i].summoner).name;
-            game.players[i].championName = store.find('champions', players[i].champion).name;
-        };
-
-        view.game(game);
+        view.game(game[0]);
     })
+
     .when('/summoners/all', function() {
         view.summoners(store.summoners);
     })
+
     .when('/summoners/:id', function(params) {
         var champion,
             championCache = {},
-            summoner = clone(store.find('summoners', parseInt(params.id)));
-        summoner.games = clone(store.query('players', {summoner:parseInt(params.id)}));
+            summoner = store.summoners.copy().find(parseInt(params.id));
+
+        summoner.games = store.players.copy().query({summoner:summoner.id});
         summoner.champions = [];
         summoner.stats = {
             kills:0,
@@ -64,14 +57,14 @@ spider.define('app', function() {
             summoner.stats.assists += summoner.games[i].assists;
             summoner.stats.minions += summoner.games[i].minions;
             summoner.stats.gold += summoner.games[i].gold;
-            summoner.stats[store.find('games', summoner.games[i].game).win ? 'wins' : 'losses'] += 1;
+            summoner.stats[store.games.find(summoner.games[i].game).win ? 'wins' : 'losses'] += 1;
 
             champion = summoner.games[i].champion;
             if(champion in championCache) {
                 summoner.champions[championCache[champion]].count += 1
             } else {
                 championCache[champion] = summoner.champions.push({
-                    name:store.find('champions', champion).name,
+                    name:store.champions.find(champion).name,
                     count:1
                 }) - 1;
             };
@@ -91,6 +84,7 @@ spider.define('app', function() {
 
         view.summoner(summoner);
     })
+
     .start();
 
     //diesel.router.navigateTo('/');
