@@ -1,12 +1,8 @@
 spider.define('app', function() {
 
     var store = spider.fetch('store'),
-        view = spider.fetch('view'),
+        view = spider.fetch('view');
     
-    clone = function(data) {
-        return JSON.parse(JSON.stringify(data));
-    };
-
     diesel.router.config({history:false})
     .when('/', function() {
         view.home();

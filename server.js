@@ -50,10 +50,6 @@ find = function(collectionName, id) {
     return null;
 },
 
-isFriend = function(id) {
-    return find('summoners', id) !== null;
-},
-
 saveGame = function(summoner, rawGame) {
     // This method accepts an array of raw game data,
     // in which case it will call itself recursively.
@@ -76,7 +72,13 @@ saveGame = function(summoner, rawGame) {
         deaths:     rawGame.stats.numDeaths || 0,
         assists:    rawGame.stats.assists || 0,
         minions:    rawGame.stats.minionsKilled,
-        gold:       rawGame.stats.goldEarned
+        gold:       rawGame.stats.goldEarned,
+        item1:      rawGame.stats.item1,
+        item2:      rawGame.stats.item2,
+        item3:      rawGame.stats.item3,
+        item4:      rawGame.stats.item4,
+        item5:      rawGame.stats.item5,
+        item6:      rawGame.stats.item6
     });
 
     // Check if the game has already been saved.
@@ -120,7 +122,7 @@ getJSON('/v1.1/champion', function(data) {
             store.games = [];
             store.players = [];
             getAllRecentGames();
-        }, 1000*60*60);
+        }, 1000*60*15);
     });
 });
 
