@@ -40,9 +40,14 @@ spider.define('Collection', function() {
         // Replace a non-primary index in each entry of the collection
         // with its value in another collection.
         merge:function(collection, key) {
-            var newKey = key + 'Name';
-            for(var i = 0; i < this.length; i++)
-                this[i][newKey] = collection.find(this[i][key]).name;
+            for(var i = 0; i < this.length; i++) {
+                if(Array.isArray(this[i][key]))
+                    for(var j = 0; j < this[i][key].length; j++)
+                        this[i][key][j] = collection.find(this[i][key][j]);
+                else
+                    this[i][key] = collection.find(this[i][key]);
+            };
+
             return this;
         },
 

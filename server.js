@@ -3,14 +3,17 @@ var app = require('./webServer'),
     fs = require('fs'),
     https = require('https'),
 
+    UPDATES_PER_HOUR = 4,
+
     api = {
-        base:'https://prod.api.pvp.net/api/lol/na',
+        base:'https://prod.api.pvp.net/api/lol',
         key:config.apiKey
     },
 
     store = {
         champions:  [],
         games:      [],
+        items:      [],
         players:    [],
         summoners:  config.summoners
     },
@@ -29,8 +32,24 @@ getAllRecentGames = function(callback) {
     };
 },
 
-getJSON = function(endpoint, callback) {
-    https.get(api.base + endpoint + '?api_key='+api.key, function(response) {
+getJSON = function(endpoint, options, callback) {
+    var query = '?api_key=' + api.key,
+        url = api.base;
+
+    if(typeof options === 'function') {
+        callback = options;
+    } else {
+        if('static' in options && options.static)
+            url += '/static-data';
+
+        if('params' in options)
+            for(var key in options.params)
+                query += '&' + key + '=' + options.params[key];
+    };
+
+    url += '/na' + endpoint + query;
+
+    https.get(url, function(response) {
         var str = '';
         response.setEncoding('utf8');
         response.on('data', function(chunk) {
@@ -74,6 +93,7 @@ saveGame = function(summoner, rawGame) {
         minions:    rawGame.stats.minionsKilled,
         gold:       rawGame.stats.goldEarned,
         wards:      rawGame.stats.wardPlaced,
+        item0:      rawGame.stats.item0,
         item1:      rawGame.stats.item1,
         item2:      rawGame.stats.item2,
         item3:      rawGame.stats.item3,
@@ -106,7 +126,9 @@ app.get(['/', '/index.html'], function(request, response) {
 
 // Initialize the app.
 
-// Get all recent games and champion data.
+// All the static data (champions and items)
+// is retrieved once at startup.
+
 getJSON('/v1.1/champion', function(data) {
     // Get all the champions (id and name).
     for(var i = 0; i < data.champions.length; i++) {
@@ -116,14 +138,31 @@ getJSON('/v1.1/champion', function(data) {
         });
     };
 
-    getAllRecentGames(function() {
-        app.init(__dirname, 8081);
+    // NOTE: Static requests do not count toward rate limit.
+    getJSON('/v1.2/item', {static:true, params:{itemListData:'from,image,sanitizedDescription'}}, function(response) {
+        var item = {};
+        for(var id in response.data) {
+            item = response.data[id];
 
-        updateInterval = setInterval(function() {
-            store.games = [];
-            store.players = [];
-            getAllRecentGames();
-        }, 1000*60*15);
+            if('inStore' in item && item.inStore === false) continue;
+
+            store.items.push({
+                id:         item.id,
+                description:item.sanitizedDescription,
+                from:       ('from' in item) ? item.from.map(function(x) { return parseInt(x, 10); }) : [],
+                image:      item.image,
+                name:       item.name
+            });
+        };
+
+        getAllRecentGames(function() {
+            app.init(__dirname, 8081);
+
+            updateInterval = setInterval(function() {
+                store.games = [];
+                store.players = [];
+                getAllRecentGames();
+            }, 1000*60*60/UPDATES_PER_HOUR);
+        });
     });
 });
-

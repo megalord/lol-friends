@@ -28,6 +28,19 @@ spider.define('view', function() {
         return element;
     },
 
+    createIcon = function(properties, route) {
+        var icon = createElement('div', null, {
+            style:  'width:' + properties.w + 'px; height:' + properties.h + 'px; display:inline-block;'
+                + ' background:url(\'http://ddragon.leagueoflegends.com/cdn/4.5.4/img/sprite/' + properties.sprite + '\')'
+                + ' -' + properties.x + 'px -' + properties.y + 'px no-repeat;'
+        });
+
+        if(typeof route === 'string')
+            navigateOnClick(icon, route);
+
+        return icon;
+    },
+
     divider = function() {
         return createElement('img', null, {class:'divider',src:'/images/divider.png'});
     },
@@ -39,8 +52,8 @@ spider.define('view', function() {
         for(var i = 0; i < game.players.length; i++) {
             player = game.players[i];
             fragment.appendChild(createElement('div', [
-                createElement('span', player.summonerName, {class:'left'}),
-                createElement('span', player.championName),
+                createElement('span', player.summoner.name, {class:'left'}),
+                createElement('span', player.champion.name),
                 createElement('span', player.kills + '/' + player.deaths + '/' + player.assists, {class:'right'})
             ], {class:'center'}));
         };
@@ -94,17 +107,15 @@ spider.define('view', function() {
     navigateOnClick(document.querySelector('h1'), '/');
 
     return {
-        allGames:function(games) {
-            var fragment = createElement('fragment');
-
-            for(var i = 0; i < games.length; i++)
-                fragment.appendChild(gamePreview(games[i]));
-
-            render(fragment);
+        champions:function() {
+            render(createElement('div', 'Not ready yet.'));
         },
 
         game:function(game) {
-            var createRow = function(text) {
+            var item = {},
+                items = [],
+            
+            createRow = function(text) {
                 var cells = [];
                 for(var i = 0; i < text.length; i++)
                     cells.push(createElement('td', text[i]));
@@ -114,15 +125,32 @@ spider.define('view', function() {
             rows = [createRow(['summoner', 'champion', 'k/d/a', 'cs', 'gold'])];
 
             for(var i = 0; i < game.players.length; i++) {
-                summoner = createElement('div', game.players[i].summonerName);
-                navigateOnClick(summoner, '/summoners/' + game.players[i].summoner);
-                rows.push(createRow([
-                    summoner,
-                    game.players[i].championName,
-                    game.players[i].kills+'/'+game.players[i].deaths+'/'+game.players[i].assists,
-                    game.players[i].minions.toString(),
-                    Math.round(game.players[i].gold/100)/10 + 'k'
-                ]))
+                summoner = createElement('div', game.players[i].summoner.name);
+                navigateOnClick(summoner, '/summoners/' + game.players[i].summoner.id);
+
+                items = [];
+                console.log(game.players[i]);
+                for(var j = 0; j < 7; j++) {
+                    item = game.players[i]['item'+j];
+                    if(item !== null)
+                        items.push(createIcon(item.image, '/items/' + item.id));
+                };
+
+                rows.push(
+                    createRow([
+                        summoner,
+                        game.players[i].champion.name,
+                        game.players[i].kills+'/'+game.players[i].deaths+'/'+game.players[i].assists,
+                        game.players[i].minions.toString(),
+                        Math.round(game.players[i].gold/100)/10 + 'k'
+                    ]),
+                    createElement('tr',
+                        createElement('td',
+                            createElement('div', items),
+                            {colspan:5}
+                        )
+                    )
+                );
             };
 
             render(createElement('fragment', [
@@ -132,21 +160,69 @@ spider.define('view', function() {
             ]));
         },
 
-        home:function() {
-            var gamesLink = createElement('span', 'games'),
-                summonersLink = createElement('span', 'summoners');
+        games:function(games) {
+            var fragment = createElement('fragment');
 
-            navigateOnClick(gamesLink, '/games/all');
-            navigateOnClick(summonersLink, '/summoners/all');
+            for(var i = 0; i < games.length; i++)
+                fragment.appendChild(gamePreview(games[i]));
+
+            render(fragment);
+        },
+
+        home:function() {
+            var content = ['champions', 'games', 'items', 'summoners'],
+                links = [];
+
+            for(var i = 0; i < content.length; i++) {
+                links[i] = createElement('li', content[i]);
+                navigateOnClick(links[i], '/' + content[i] + '/all');
+            };
 
             render(createElement('fragment', [
                 createElement('div', 'browse by:', {class:'center'}),
-                createElement('div', [
-                    gamesLink,
-                    createElement('span', null, {id:'spacer'}),
-                    summonersLink
-                ], {id:'links', class:'center'})
+                createElement('ul', links, {id:'links', class:'center'})
             ]));
+        },
+
+        item:function(item) {
+            var fragmentContent = [],
+                fromIcons = [];
+
+            for(var i = 0; i < item.from.length; i++)
+                fromIcons.push(createIcon(item.from[i].image, '/items/' + item.from[i].id));
+
+
+            fragmentContent = [
+                createElement('div', [
+                    createElement('span', item.name),
+                    createIcon(item.image)
+                ]),
+                createElement('div', item.description, {id:'itemDescription'}),
+            ];
+
+            if(fromIcons.length > 0) {
+                fragmentContent.push(createElement('div', [
+                    createElement('div', 'builds from:'),
+                    createElement('div', fromIcons)
+                ]));
+            };
+
+            fragmentContent.push(backButton());
+
+            render(createElement('fragment', fragmentContent));
+        },
+
+        items:function(items) {
+            var icon,
+                icons = [];
+
+            for(var i = 0; i < items.length; i++) {
+                icon = createIcon(items[i].image);
+                navigateOnClick(icon, '/items/' + items[i].id);
+                icons.push(icon);
+            };
+
+            render(createElement('fragment', icons));
         },
 
         summoner:function(summoner) {

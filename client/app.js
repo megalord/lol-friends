@@ -6,6 +6,9 @@ spider.define('app', function() {
         mergedPlayers = store.players.copy()
             .merge(store.champions, 'champion')
             .merge(store.summoners, 'summoner');
+
+    for(var i = 0; i < 7; i++)
+        mergedPlayers.merge(store.items, 'item'+i);
     
     diesel.router.config({history:false})
 
@@ -13,21 +16,44 @@ spider.define('app', function() {
         view.home();
     })
 
+    /*.when('/champions/all', function() {
+        view.champions();
+    })
+
+    .when('/champions/:id', function(params) {
+        view.champion(store.champions.find(parseInt(params.id)));
+    })*/
+
+
+    .when('/items/all', function() {
+        view.items(store.items);
+    })
+
+    .when('/items/:id', function(params) {
+        var item = store.items.copy()
+            .query({id:parseInt(params.id)})
+            .merge(store.items, 'from')[0];
+
+        view.item(item);
+    })
+
+
     .when('/games/all', function() {
         var games = store.games
                 .joinMany(mergedPlayers, 'players', 'game')
                 .sort('end', 'desc');
 
-        view.allGames(games);
+        view.games(games);
     })
 
     .when('/games/:id', function(params) {
         var game = store.games
             .query({id:parseInt(params.id)})
-            .joinMany(mergedPlayers, 'players', 'game');
+            .joinMany(mergedPlayers, 'players', 'game')[0];
 
-        view.game(game[0]);
+        view.game(game);
     })
+
 
     .when('/summoners/all', function() {
         view.summoners(store.summoners);
@@ -86,6 +112,4 @@ spider.define('app', function() {
     })
 
     .start();
-
-    //diesel.router.navigateTo('/');
 });
