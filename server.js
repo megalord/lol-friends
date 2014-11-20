@@ -6,7 +6,7 @@ var app = require('./webServer'),
     UPDATES_PER_HOUR = 4,
 
     api = {
-        base:'https://prod.api.pvp.net/api/lol',
+        base:'https://na.api.pvp.net/api/lol',
         key:config.apiKey
     },
 
@@ -129,14 +129,15 @@ app.get(['/', '/index.html'], function(request, response) {
 // All the static data (champions and items)
 // is retrieved once at startup.
 
-getJSON('/v1.1/champion', function(data) {
+getJSON('/v1.2/champion', { static: true }, function(response) {
     // Get all the champions (id and name).
-    for(var i = 0; i < data.champions.length; i++) {
+    var champions = response.data;
+    Object.keys(champions).forEach(function (name) {
         store.champions.push({
-            id:     data.champions[i].id,
-            name:   data.champions[i].name
+            id:     champions[name].id,
+            name:   name
         });
-    };
+    });
 
     // NOTE: Static requests do not count toward rate limit.
     getJSON('/v1.2/item', {static:true, params:{itemListData:'from,image,sanitizedDescription'}}, function(response) {
