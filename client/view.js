@@ -42,7 +42,7 @@ spider.define('view', function() {
     },
 
     divider = function() {
-        return createElement('img', null, {class:'divider',src:'/images/divider.png'});
+        return createElement('img', null, {class:'divider',src:'images/divider.png'});
     },
 
     gamePreview = function(game) {
@@ -70,7 +70,7 @@ spider.define('view', function() {
 
     gameTitle = function(game) {
         return createElement('div', [
-            createElement('span', game.type, {class:'left'}),
+            createElement('span', game.type ? game.type.name : 'other', {class:'left'}),
             createElement('span', game.win ? 'victory' : 'defeat'),
             createElement('span', formatDate(game.end), {class:'right'})
         ], {class:'center'});

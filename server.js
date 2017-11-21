@@ -6,48 +6,61 @@ var app = require('./webServer'),
     UPDATES_PER_HOUR = 4,
 
     api = {
-        base:'https://na.api.pvp.net/api/lol',
+        base:'https://na1.api.riotgames.com/lol',
         key:config.apiKey
     },
+
+    matchCache = {},
 
     store = {
         champions:  [],
         games:      [],
         items:      [],
         players:    [],
-        summoners:  config.summoners
+        summoners:  config.summoners,
+        queues: [{
+            id: 400,
+            name: '5v5 Draft'
+        }, {
+            id: 420,
+            name: '5v5 Ranked Solo/Duo'
+        }, {
+            id: 440,
+            name: '5v5 Ranked Flex'
+        }, {
+            id: 450,
+            name: 'ARAM'
+        }]
     },
 
 
 getAllRecentGames = function(callback) {
-    var summonerIndex = 1;
+    store.summoners.forEach(function (summoner, i) {
+        getJSON('/match/v3/matchlists/by-account/' + summoner.id + '/recent', function(data) {
+            saveGame(summoner.id, data.matches);
 
-    for(var i = 0; i < store.summoners.length; i++) {
-        getJSON('/v1.3/game/by-summoner/' + store.summoners[i].id + '/recent', function(data) {
-            saveGame(data.summonerId, data.games);
-
-            if(++summonerIndex > store.summoners.length && typeof callback === 'function')
+            if(i === store.summoners.length - 1 && typeof callback === 'function')
                 callback();
         });
-    };
+    });
 },
 
 getJSON = function(endpoint, options, callback) {
     var query = '?api_key=' + api.key,
-        url = api.base;
+        url = api.base + endpoint;
 
     if(typeof options === 'function') {
         callback = options;
     } else {
-        if('static' in options && options.static)
-            url += '/static-data';
-
         if('params' in options)
             for(var key in options.params)
-                query += '&' + key + '=' + options.params[key];
+                if(Array.isArray(options.params[key]))
+                    query += '&' + options.params[key].map(function (val) { return key + '=' + val; }).join('&');
+                else
+                    query += '&' + key + '=' + options.params[key];
     };
 
-    url += '/na' + endpoint + query;
+    url += query;
 
     https.get(url, function(response) {
         var str = '';
@@ -56,15 +69,19 @@ getJSON = function(endpoint, options, callback) {
             str += chunk;
         });
         response.on('end', function() {
-            callback(JSON.parse(str));
+            var data = JSON.parse(str);
+            if (data.status && data.status.status_code !== 200)
+                console.log(endpoint, data.status);
+            else
+                callback(data);
         });
     });
 },
 
-find = function(collectionName, id) {
-    var collection = store[collectionName];
+find = function(collection, id, key) {
+    key || (key = 'id');
     for(var i = 0; i < collection.length; i++)
-        if(collection[i].id === id)
+        if(collection[i][key] === id)
             return collection[i];
     return null;
 },
@@ -78,39 +95,35 @@ saveGame = function(summoner, rawGame) {
         return;
     };
 
-    // Fixes unknown bug.
-    if(!('fellowPlayers' in rawGame))
-        return;
-
     // Add the owning player and any friends to the players collection.
     store.players.push({
         game:       rawGame.gameId,
         summoner:   summoner,
-        champion:   rawGame.championId,
-        kills:      rawGame.stats.championsKilled || 0,
-        deaths:     rawGame.stats.numDeaths || 0,
-        assists:    rawGame.stats.assists || 0,
-        minions:    rawGame.stats.minionsKilled,
-        gold:       rawGame.stats.goldEarned,
-        wards:      rawGame.stats.wardPlaced,
-        item0:      rawGame.stats.item0,
-        item1:      rawGame.stats.item1,
-        item2:      rawGame.stats.item2,
-        item3:      rawGame.stats.item3,
-        item4:      rawGame.stats.item4,
-        item5:      rawGame.stats.item5,
-        item6:      rawGame.stats.item6
+        champion:   rawGame.champion,
+        kills:      0,
+        deaths:     0,
+        assists:    0,
+        minions:    0,
+        gold:       0,
+        wards:      0,
+        item0:      {},
+        item1:      {},
+        item2:      {},
+        item3:      {},
+        item4:      {},
+        item5:      {},
+        item6:      {}
     });
 
     // Check if the game has already been saved.
-    if(find('games', rawGame.gameId) === null) {
+    if(find(store.games, rawGame.gameId) === null) {
         // Add the game data to the games collection.
         store.games.push({
             id:     rawGame.gameId,
-            length: rawGame.stats.timePlayed,
-            end:    rawGame.createDate,
-            type:   rawGame.subType.replace('_', ' '),
-            win:    rawGame.stats.win
+            length: 0,
+            end:    rawGame.timestamp,
+            type:   rawGame.queue,
+            win:    true
         });
     };
 };
@@ -124,28 +137,62 @@ app.get(['/', '/index.html'], function(request, response) {
 });
 
 
+app.get('/api/matches/(\\d+)', function(request, response) {
+    var matchId = request.params[0];
+    if(matchId in matchCache) {
+        app.respond(response, 200, {'Content-Type':'application/json'}, matchCache[matchId]);
+    } else {
+        getJSON('/match/v3/matches/' + matchId, function(resp) {
+            var players = resp.participantIdentities.filter(function (p) {
+                return find(store.summoners, p.player.accountId);
+            }).map(function(part) {
+                var p = find(resp.participants, part.participantId, 'participantId');
+                return {
+                    id:      part.player.accountId,
+                    win:     p.stats.win,
+                    kills:   p.stats.kills,
+                    deaths:  p.stats.deaths,
+                    assists: p.stats.assists,
+                    minions: p.stats.totalMinionsKilled + p.stats.neutralMinionsKilled,
+                    gold:    p.stats.goldEarned,
+                    wards:   p.stats.wardsPlaced,
+                    item0:   p.stats.item0,
+                    item1:   p.stats.item1,
+                    item2:   p.stats.item2,
+                    item3:   p.stats.item3,
+                    item4:   p.stats.item4,
+                    item5:   p.stats.item5,
+                    item6:   p.stats.item6
+                }
+            });
+
+            matchCache[matchId] = JSON.stringify(players);
+            app.respond(response, 200, {'Content-Type':'application/json'}, matchCache[matchId]);
+        });
+    }
+});
+
+
 // Initialize the app.
 
 // All the static data (champions and items)
 // is retrieved once at startup.
 
-getJSON('/v1.2/champion', { static: true }, function(response) {
+getJSON('/static-data/v3/champions', function(response) {
     // Get all the champions (id and name).
     var champions = response.data;
     Object.keys(champions).forEach(function (name) {
         store.champions.push({
             id:     champions[name].id,
-            name:   name
+            name:   name,
+            title:  champions[name].title
         });
     });
 
-    // NOTE: Static requests do not count toward rate limit.
-    getJSON('/v1.2/item', {static:true, params:{itemListData:'from,image,sanitizedDescription'}}, function(response) {
+    getJSON('/static-data/v3/items', {params:{tags: ['from', 'image', 'inStore', 'sanitizedDescription']}}, function(response) {
         var item = {};
         for(var id in response.data) {
             item = response.data[id];
-
-            if('inStore' in item && item.inStore === false) continue;
 
             store.items.push({
                 id:         item.id,

@@ -41,6 +41,7 @@ spider.define('app', function() {
     .when('/games/all', function() {
         var games = store.games
                 .joinMany(mergedPlayers, 'players', 'game')
+                .merge(store.queues, 'type')
                 .sort('end', 'desc');
 
         view.games(games);
@@ -49,7 +50,8 @@ spider.define('app', function() {
     .when('/games/:id', function(params) {
         var game = store.games
             .query({id:parseInt(params.id)})
-            .joinMany(mergedPlayers, 'players', 'game')[0];
+            .joinMany(mergedPlayers, 'players', 'game')
+            .merge(store.queues, 'type')[0];
 
         view.game(game);
     })

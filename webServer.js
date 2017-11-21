@@ -21,10 +21,10 @@ module.exports = webServer = {
         var self = this;
         this.http = http.createServer(function(request, response) {
             var uri = url.parse(request.url).pathname,
+                route = self.findRoute(uri, request),
                 filename = path.join(root, uri);
-            //console.log(request.method + ' request to ' + uri);
-            if(request.method in self.router && uri in self.router[request.method]) {
-                self.router[request.method][uri](request, response);
+            if(route) {
+                route(request, response);
             } else if(request.method === 'GET') {
                 fs.exists(filename, function(exists) {
                     if(exists) {
@@ -72,6 +72,28 @@ module.exports = webServer = {
         else
             for(var i = 0; i < route.length; i++)
                 this.register(route[i], method, callback);
+    },
+
+    findRoute:function(uri, request, response) {
+        if(!(request.method in this.router)) {
+            return null;
+        } else {
+            if(uri in this.router[request.method]) {
+                return this.router[request.method][uri];
+            } else {
+                var match;
+                for (route in this.router[request.method]) {
+                    if(route.indexOf('(') !== -1) {
+                        match = uri.match(route);
+                        if (match) {
+                            request.params = match.slice(1);
+                            return this.router[request.method][paths[i]];
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     },
 
     respond:function(response, code, headers, data) {
