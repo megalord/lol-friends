@@ -139,7 +139,9 @@ app.get(['/', '/index.html'], function(request, response) {
 
 app.get('/api/matches/(\\d+)', function(request, response) {
     var matchId = request.params[0];
-    if(matchId in matchCache) {
+    if(!find(store.games, matchId)) {
+        app.respond(response, 404, {'Content-Type':'application/json'}, '{"message":"match id not found"}');
+    } else if(matchId in matchCache) {
         app.respond(response, 200, {'Content-Type':'application/json'}, matchCache[matchId]);
     } else {
         getJSON('/match/v3/matches/' + matchId, function(resp) {
