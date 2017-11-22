@@ -100,19 +100,6 @@ saveGame = function(summoner, rawGame) {
         game:       rawGame.gameId,
         summoner:   summoner,
         champion:   rawGame.champion,
-        kills:      0,
-        deaths:     0,
-        assists:    0,
-        minions:    0,
-        gold:       0,
-        wards:      0,
-        item0:      {},
-        item1:      {},
-        item2:      {},
-        item3:      {},
-        item4:      {},
-        item5:      {},
-        item6:      {}
     });
 
     // Check if the game has already been saved.
@@ -122,8 +109,7 @@ saveGame = function(summoner, rawGame) {
             id:     rawGame.gameId,
             length: 0,
             end:    rawGame.timestamp,
-            type:   rawGame.queue,
-            win:    true
+            type:   rawGame.queue
         });
     };
 };
@@ -138,7 +124,7 @@ app.get(['/', '/index.html'], function(request, response) {
 
 
 app.get('/api/matches/(\\d+)', function(request, response) {
-    var matchId = request.params[0];
+    var matchId = parseInt(request.params[0]);
     if(!find(store.games, matchId)) {
         app.respond(response, 404, {'Content-Type':'application/json'}, '{"message":"match id not found"}');
     } else if(matchId in matchCache) {
@@ -150,7 +136,9 @@ app.get('/api/matches/(\\d+)', function(request, response) {
             }).map(function(part) {
                 var p = find(resp.participants, part.participantId, 'participantId');
                 return {
-                    id:      part.player.accountId,
+                    game:    resp.gameId,
+                    summoner:part.player.accountId,
+                    champion:p.championId,
                     win:     p.stats.win,
                     kills:   p.stats.kills,
                     deaths:  p.stats.deaths,

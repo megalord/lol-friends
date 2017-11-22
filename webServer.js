@@ -87,7 +87,7 @@ module.exports = webServer = {
                         match = uri.match(route);
                         if (match) {
                             request.params = match.slice(1);
-                            return this.router[request.method][paths[i]];
+                            return this.router[request.method][route];
                         }
                     }
                 }

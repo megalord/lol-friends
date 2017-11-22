@@ -53,8 +53,7 @@ spider.define('view', function() {
             player = game.players[i];
             fragment.appendChild(createElement('div', [
                 createElement('span', player.summoner.name, {class:'left'}),
-                createElement('span', player.champion.name),
-                createElement('span', player.kills + '/' + player.deaths + '/' + player.assists, {class:'right'})
+                createElement('span', player.champion.name, {class:'right'}),
             ], {class:'center'}));
         };
 
@@ -71,7 +70,7 @@ spider.define('view', function() {
     gameTitle = function(game) {
         return createElement('div', [
             createElement('span', game.type ? game.type.name : 'other', {class:'left'}),
-            createElement('span', game.win ? 'victory' : 'defeat'),
+            createElement('span', ('win' in game.players[0]) ? (game.players[0].win ? 'victory' : 'defeat') : '.'),
             createElement('span', formatDate(game.end), {class:'right'})
         ], {class:'center'});
     },

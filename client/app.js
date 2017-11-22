@@ -9,6 +9,25 @@ spider.define('app', function() {
 
     for(var i = 0; i < 7; i++)
         mergedPlayers.merge(store.items, 'item'+i);
+
+    var updatePlayers = function (gameId) {
+        return fetch('/api/matches/' + gameId)
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (players) {
+                players.forEach(function (player) {
+                    for(var i = 0; i < 7; i++)
+                        player['item'+i] = store.items.find(player['item'+i]);
+                    player.champion = store.champions.find(player.champion);
+                    player.summoner = store.summoners.find(player.summoner);
+                    var p = store.players.query({game:player.game,summoner:player.summoner.id})[0];
+                    if(p)
+                        Object.assign(p, player);
+                });
+            });
+    }
+
     
     diesel.router.config({history:false})
 
@@ -48,12 +67,16 @@ spider.define('app', function() {
     })
 
     .when('/games/:id', function(params) {
-        var game = store.games
-            .query({id:parseInt(params.id)})
-            .joinMany(mergedPlayers, 'players', 'game')
-            .merge(store.queues, 'type')[0];
+        var game = store.games.find(parseInt(params.id));
+        game.players = store.players.query({game:game.id});
 
-        view.game(game);
+        if(game.players[0].win)
+            view.game(game);
+        else
+            updatePlayers(game.id).then(function () {
+                game.players = store.players.query({game:game.id});
+                view.game(game);
+            });
     })
 
 
