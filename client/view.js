@@ -31,7 +31,7 @@ spider.define('view', function() {
     createIcon = function(properties, route) {
         var icon = createElement('div', null, {
             style:  'width:' + properties.w + 'px; height:' + properties.h + 'px; display:inline-block;'
-                + ' background:url(\'http://ddragon.leagueoflegends.com/cdn/4.5.4/img/sprite/' + properties.sprite + '\')'
+                + ' background:url(\'http://ddragon.leagueoflegends.com/cdn/7.23.1/img/sprite/' + properties.sprite + '\')'
                 + ' -' + properties.x + 'px -' + properties.y + 'px no-repeat;'
         });
 
